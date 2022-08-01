@@ -1,0 +1,89 @@
+----process
+SELECT *
+  FROM [sql tot].[dbo].[combine ]
+
+ 
+update [sql tot].[dbo].[combine ]
+set day = datename(WEEKDAY,started_at)
+
+alter table [sql tot].[dbo].[combine ]
+add  tripduration NVARCHAR(50)
+
+
+alter table [sql tot].[dbo].[combine ]
+drop column rout
+
+update  [sql tot].[dbo].[combine ]
+set tripduration = datediff(second,started_at,ended_at)
+
+
+
+select DATENAME(second, started_at) [Month]
+  from [sql tot].[dbo].[202012-divvy-tripdata]
+
+ 
+ delete from [sql tot].[dbo].[combine ]
+ where END_station_ID is null
+
+ alter table [sql tot].[dbo].[combine ]
+ add route nvarchar(max) ;
+
+ update [sql tot].[dbo].[combine ]
+ set route = CONCAT_ws('-',start_station_name,'  _ ',end_station_name) 
+
+
+delete FROM [sql tot].[dbo].[combine ]
+WHERE tripduration <= 0;
+
+--analyze
+select count (distinct start_station_name)
+from [sql tot].[dbo].[combine ]
+
+-- where is most frequent start and end station? 
+select start_station_name, 
+      count(start_station_name) as count_start_station1
+	  from [sql tot].[dbo].[combine ]
+	  group by start_station_name
+	
+--Which start station is used the most among casual? 
+select start_station_name, 
+      count(start_station_name) as count_start_station_casual
+	  from [sql tot].[dbo].[combine ]
+	  where member_casual = 'casual'
+	  group by start_station_name 
+
+	  ----What is the busiest and free time of casual and members?
+	  select week_day, count(week_day) as casual_day_busiest
+	  from [sql tot].[dbo].[combine ]
+	  where member_casual = 'casual'
+	  group by week_day
+
+	  select week_day, count(week_day) as casual_day_busiest
+	  from [sql tot].[dbo].[combine ]
+ where member_casual = 'member'
+	  group by week_day
+
+	  ----What time is the most frequent use? - time to promote a brand?
+	  select hour_ride , count(hour_ride) as frequent_time
+	  from [sql tot].[dbo].[combine ]
+	 group by hour_ride
+	 order by frequent_time desc
+
+	 ----Which routes are the most popular?
+	 select route ,count(route) as most_popular_route
+	 from [sql tot].[dbo].[combine ]
+	 group by route 
+	 order by most_popular_route DESC
+
+	  ----Check how many rides are in/out of range (3 hours) and which day of the week has the greatest frequency?
+	 select   week_day,
+  count(tripduration_in_second) as passday
+from [sql tot].[dbo].[combine ]
+where tripduration_in_second >= 60*60*3 
+      and member_casual = 'casual'
+group by  week_day
+order by count(tripduration_in_second) desc
+
+
+
+	
